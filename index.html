@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Clipboard Sync</title>
+    <link rel="icon" href="favicon.ico" type="image/x-icon">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 600px;
+            margin: 20px auto;
+            padding: 10px;
+        }
+
+        .clipboard-section {
+            position: relative;
+            margin-bottom: 15px;
+        }
+
+        #copy-button {
+            position: absolute;
+            top: -25px;
+            right: 5px;
+            padding: 3px 6px;
+            font-size: 0.8rem;
+            border: 1px solid #ccc;
+            background: #f3f3f3;
+            cursor: pointer;
+        }
+
+        #clipboard-content {
+            width: 100%;
+            height: 100px;
+            padding: 10px;
+            border: 1px solid #ccc;
+            background: white;
+            font-size: 1rem;
+            overflow-y: auto;
+            word-wrap: break-word;
+        }
+
+        /* Send Box - Old-school stripe style */
+        .send-section {
+            display: flex;
+            justify-content: center;
+            gap: 5px;
+            margin-top: 10px;
+        }
+
+        #new-clipboard {
+            width: 250px;
+            height: 30px;
+            padding: 5px;
+            font-size: 1rem;
+            border: 1px solid #ccc;
+        }
+
+        #send-button {
+            padding: 5px 10px;
+            font-size: 1rem;
+            border: 1px solid #ccc;
+            background: #f3f3f3;
+            cursor: pointer;
+        }
+
+        /* Responsive Design */
+        @media (max-width: 600px) {
+            .send-section {
+                flex-direction: column;
+                align-items: center;
+            }
+
+            #new-clipboard {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <h1>Push Clip</h1>
+
+    <!-- Clipboard Box -->
+    <div class="clipboard-section">
+        <button id="copy-button">Copy</button>
+        <div id="clipboard-content">Loading clipboard...</div>
+    </div>
+
+    <!-- Send Box (Standalone, Small Stripe) -->
+    <div class="send-section">
+        <input type="text" id="new-clipboard" placeholder="Enter new clipboard content" required />
+        <button id="send-button">Send</button>
+    </div>
+
+<div id="device-ip" style="margin-top: 20px; text-align: center;"></div>
+
+
+    <script>
+
+        async function fetchIP() {
+            try {
+                const response = await fetch("/get_ip");
+                const data = await response.json();
+                document.getElementById("device-ip").innerHTML = 
+                    `Your clipboard is accessible at: <strong>http://${data.ip}:5000</strong>`;
+            } catch (error) {
+                document.getElementById("device-ip").innerText = "Failed to get device IP.";
+            }
+        }
+
+
+        async function getClipboard() {
+            try {
+                const response = await fetch("/get_clipboard");
+                const data = await response.json();
+                
+                if (response.ok) {
+                    document.getElementById("clipboard-content").innerText = data.clipboard || "No clipboard content available";
+                }
+            } catch (error) {
+                document.getElementById("clipboard-content").innerText = "Failed to fetch clipboard: " + error;
+            }
+        }
+
+        async function updateClipboard(event) {
+            event.preventDefault();
+            const newClipboard = document.getElementById("new-clipboard").value;
+
+            try {
+                await fetch("/update_clipboard", {
+                    method: "POST",
+                    body: new URLSearchParams({ new_clipboard: newClipboard })
+                });
+
+                getClipboard();
+            } catch (error) {
+                console.error("Failed to update clipboard:", error);
+            }
+        }
+
+        function copyToClipboard() {
+            const clipboardText = document.getElementById("clipboard-content").innerText;
+            if (clipboardText) {clipboard
+                navigator.clipboard.writeText(clipboardText).then(() => {
+                    console.log("Copied to clipboard:", clipboardText);
+                }).catch(err => {
+                    console.error("Failed to copy:", err);
+                });
+            }
+        }
+
+        document.getElementById("send-button").addEventListener("click", updateClipboard);
+        document.getElementById("copy-button").addEventListener("click", copyToClipboard);
+
+        setInterval(getClipboard, 1000);
+        getClipboard();
+        fetchIP();
+    </script>
+</body>
+</html>
